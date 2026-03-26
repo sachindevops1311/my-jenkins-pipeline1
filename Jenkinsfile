@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_HUB   = credentials('11708ce4-4145-4399-9573-3599390c1484')
         IMAGE_NAME   = 'sachin1311/jenkins-app'
-        IMAGE_TAG    = "${BUILD_NUMBER ?: 'latest'}"   // FIX #6: fallback if BUILD_NUMBER is null
+        IMAGE_TAG    = "${BUILD_NUMBER ?: 'latest'}"
         REGISTRY     = 'docker.io'
     }
 
@@ -21,7 +21,7 @@ pipeline {
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/sachindevops1311/my-jenkins-pipeline1.git',
-                        credentialsId: 'b460e8df-ada5-4733-bf6f-38d8db64dd26'   // FIX #4: added credentialsId for private repo
+                        credentialsId: 'b460e8df-ada5-4733-bf6f-38d8db64dd26'
                     ]]
                 ])
                 sh 'echo "✅ Code checked out successfully"'
@@ -46,11 +46,7 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────
-        // STAGE 3 : RUN TESTS  (moved before push)
-        // FIX #2: tests now run INSIDE the container,
-        //         not on the host Jenkins agent
-        // FIX #5: test stage kept after build but before
-        //         push so failures stop the pipeline early
+        // STAGE 3 : RUN TESTS
         // ─────────────────────────────────────────────
         stage('🧪 Run Tests') {
             steps {
@@ -85,10 +81,6 @@ pipeline {
 
         // ─────────────────────────────────────────────
         // STAGE 5 : DEPLOY WITH ANSIBLE
-        // FIX #3: removed 'pip install ansible' from
-        //         every run — Ansible must be pre-installed
-        //         on the agent (or use a dedicated Docker
-        //         image).  Removed silent-fail '|| true'.
         // ─────────────────────────────────────────────
         stage('🚀 Deploy with Ansible') {
             steps {
@@ -96,8 +88,7 @@ pipeline {
                 sh '''
                     echo "Deploying application with Ansible..."
 
-                    # Ansible must be pre-installed on this agent.
-                    # Verify it is available before proceeding.
+                    # Verify ansible is available
                     ansible --version
 
                     # Run the deployment playbook
@@ -111,25 +102,29 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────
-      stage('✅ Verify Deployment') {
-    steps {
-        echo '======== STAGE 6: VERIFY ========'
-        sh '''
-            echo "Checking container status..."
-            
-            # Check container is running
-            docker ps | grep jenkins-app && \
-            echo "✅ Container is running!" || \
-            echo "⚠️ Container not found"
-            
-            # Show container details
-            docker ps | grep jenkins-app
-            
-            # Show app logs
-            docker logs jenkins-app --tail 10
-        '''
-    }
-}
+        // STAGE 6 : VERIFY DEPLOYMENT
+        // ─────────────────────────────────────────────
+        stage('✅ Verify Deployment') {
+            steps {
+                echo '======== STAGE 6: VERIFY ========'
+                sh '''
+                    echo "Checking container status..."
+
+                    # Check container is running
+                    docker ps | grep jenkins-app && \
+                    echo "✅ Container is running!" || \
+                    echo "⚠️ Container not found"
+
+                    # Show container details
+                    docker ps | grep jenkins-app
+
+                    # Show app logs
+                    docker logs jenkins-app --tail 10
+                '''
+            }
+        }
+
+    }   // closes stages
 
     // ─────────────────────────────────────────────────
     // POST ACTIONS
@@ -147,4 +142,5 @@ pipeline {
             cleanWs()
         }
     }
-}
+
+}   // closes pipeline
