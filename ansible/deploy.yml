@@ -1,21 +1,44 @@
-# ✅ Fixed - no sudo needed
-- hosts: localhost
-  become: no           # ← change this
+---
+- name: Deploy Docker Application
+  hosts: all
+  become: no        # Fix 1: removed become/sudo (not available in container)
+  vars:
+    docker_image: "{{ docker_image | default('sachin1311/jenkins-app:latest') }}"  # Fix 2: correct username
+    app_port: 5000
+    container_name: jenkins-app
+
   tasks:
-    - name: Pull Docker image
-      command: docker pull {{ docker_image }}
+    - name: Pull latest Docker image
+      command: docker pull {{ docker_image }}   # Fix 3: use command instead of docker_image module
+      register: pull_result
+
+    - name: Show pull result
+      debug:
+        var: pull_result.stdout_lines
 
     - name: Stop existing container
-      command: docker stop jenkins-app
-      ignore_errors: yes
+      command: docker stop {{ container_name }}
+      ignore_errors: yes                        # OK if container doesn't exist yet
 
     - name: Remove existing container
-      command: docker rm jenkins-app
-      ignore_errors: yes
+      command: docker rm {{ container_name }}
+      ignore_errors: yes                        # OK if container doesn't exist yet
 
-    - name: Run new container
+    - name: Create and run Docker container
       command: >
         docker run -d
-        --name jenkins-app
-        -p 5000:5000
+        --name {{ container_name }}
+        --restart always
+        -p {{ app_port }}:5000
+        -e FLASK_APP=app.py
         {{ docker_image }}
+      register: run_result
+
+    - name: Show container ID
+      debug:
+        var: run_result.stdout
+
+    - name: Verify container is running
+      command: docker ps --filter name={{ container_name }} --format "{{ '{{' }}.Names{{ '}}' }}"
+      register: container_status
+      failed_when: container_name not in container_status.stdout
