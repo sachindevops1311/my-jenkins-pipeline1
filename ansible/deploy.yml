@@ -1,48 +1,21 @@
----
-- name: Deploy Docker Application
-  hosts: all
-  become: yes
-  vars:
-    docker_image: "{{ docker_image | default('sachindevops1311/jenkins-app:latest') }}"
-    app_port: 5000
-    container_name: jenkins-app
-
+# ✅ Fixed - no sudo needed
+- hosts: localhost
+  become: no           # ← change this
   tasks:
-    - name: Update apt cache
-      apt:
-        update_cache: yes
-      when: ansible_os_family == "Debian"
-
-    - name: Pull latest Docker image
-      docker_image:
-        name: "{{ docker_image }}"
-        source: pull
-        state: present
+    - name: Pull Docker image
+      command: docker pull {{ docker_image }}
 
     - name: Stop existing container
-      docker_container:
-        name: "{{ container_name }}"
-        state: stopped
+      command: docker stop jenkins-app
       ignore_errors: yes
 
     - name: Remove existing container
-      docker_container:
-        name: "{{ container_name }}"
-        state: absent
+      command: docker rm jenkins-app
       ignore_errors: yes
 
-    - name: Create and run Docker container
-      docker_container:
-        name: "{{ container_name }}"
-        image: "{{ docker_image }}"
-        state: started
-        restart_policy: always
-        ports:
-          - "{{ app_port }}:5000"
-        env:
-          FLASK_APP: app.py
-
-    - name: Verify container is running
-      shell: docker ps | grep {{ container_name }}
-      register: container_status
-      failed_when: container_status.rc != 0
+    - name: Run new container
+      command: >
+        docker run -d
+        --name jenkins-app
+        -p 5000:5000
+        {{ docker_image }}
