@@ -1,7 +1,5 @@
 # my-jenkins-pipeline1
 
-# Jenkins CI/CD Pipeline
-
 ## Overview
 Complete CI/CD pipeline with Docker, Jenkins, and Ansible deployment.
 
