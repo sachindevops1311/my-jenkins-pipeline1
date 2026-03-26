@@ -16,7 +16,7 @@ pipeline {
                     $class: 'GitSCM',
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
-                        url: 'https://github.com/sachindevops1311/my-jenkins-pipeline.git'
+                        url: 'https://github.com/sachindevops1311/my-jenkins-pipeline.git1'
                     ]]
                 ])
                 sh 'echo "✅ Code checked out successfully"'
