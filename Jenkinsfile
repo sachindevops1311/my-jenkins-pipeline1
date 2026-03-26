@@ -17,6 +17,7 @@ pipeline {
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/sachindevops1311/my-jenkins-pipeline1.git'
+                        credentialsId: 'github-creds'
                     ]]
                 ])
                 sh 'echo "✅ Code checked out successfully"'
