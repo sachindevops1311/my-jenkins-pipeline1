@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_HUB   = credentials('11708ce4-4145-4399-9573-3599390c1484')
-        IMAGE_NAME   = 'sachindevops1311/jenkins-app'
+        IMAGE_NAME   = 'sachin1311/jenkins-app'
         IMAGE_TAG    = "${BUILD_NUMBER ?: 'latest'}"   // FIX #6: fallback if BUILD_NUMBER is null
         REGISTRY     = 'docker.io'
     }
