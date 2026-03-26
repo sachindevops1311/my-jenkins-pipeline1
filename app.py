@@ -1,327 +1,383 @@
-from flask import Flask
+from flask import Flask, request, jsonify
+import json
+import os
+
 app = Flask(__name__)
 
+TODOS_FILE = '/tmp/todos.json'
+
+def load_todos():
+    if os.path.exists(TODOS_FILE):
+        with open(TODOS_FILE, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_todos(todos):
+    with open(TODOS_FILE, 'w') as f:
+        json.dump(todos, f)
+
 @app.route('/')
-def hello():
+def index():
     return '''
+    <!DOCTYPE html>
     <html>
         <head>
-            <title>Jenkins CI/CD Pipeline Demo</title>
+            <title>Todo App - Jenkins CI/CD</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
                 * { margin: 0; padding: 0; box-sizing: border-box; }
                 body {
                     font-family: Arial, sans-serif;
                     background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-                    color: white;
                     min-height: 100vh;
-                    padding: 40px 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
                 }
-                .container { max-width: 1000px; margin: 0 auto; }
-
-                /* HEADER */
-                .header {
-                    text-align: center;
-                    padding: 40px;
+                .app {
                     background: rgba(255,255,255,0.05);
+                    backdrop-filter: blur(10px);
                     border-radius: 20px;
-                    margin-bottom: 30px;
+                    padding: 40px;
+                    width: 100%;
+                    max-width: 600px;
                     border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
                 }
-                .header h1 { font-size: 2.8em; margin-bottom: 10px; }
-                .header p  { font-size: 1.2em; color: #a0aec0; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .header h1 { color: white; font-size: 2em; margin-bottom: 5px; }
+                .header p  { color: #a0aec0; font-size: 0.9em; }
                 .badge {
                     display: inline-block;
                     background: #48bb78;
                     color: white;
-                    padding: 6px 16px;
+                    padding: 4px 12px;
                     border-radius: 20px;
-                    font-size: 0.9em;
-                    margin-top: 15px;
+                    font-size: 0.75em;
+                    margin-top: 8px;
                     animation: pulse 2s infinite;
                 }
                 @keyframes pulse {
                     0%   { box-shadow: 0 0 0 0 rgba(72,187,120,0.7); }
-                    70%  { box-shadow: 0 0 0 10px rgba(72,187,120,0); }
+                    70%  { box-shadow: 0 0 0 8px rgba(72,187,120,0); }
                     100% { box-shadow: 0 0 0 0 rgba(72,187,120,0); }
                 }
-
-                /* ABOUT */
-                .about {
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 15px;
-                    padding: 30px;
-                    margin-bottom: 30px;
-                    border: 1px solid rgba(255,255,255,0.1);
-                }
-                .about h2 { font-size: 1.6em; margin-bottom: 15px; color: #63b3ed; }
-                .about p  { color: #a0aec0; line-height: 1.8; font-size: 1.05em; }
-
-                /* PIPELINE FLOW */
-                .pipeline {
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 15px;
-                    padding: 30px;
-                    margin-bottom: 30px;
-                    border: 1px solid rgba(255,255,255,0.1);
-                }
-                .pipeline h2 { font-size: 1.6em; margin-bottom: 20px; color: #63b3ed; }
-                .stages {
-                    display: flex;
-                    flex-wrap: wrap;
-                    gap: 10px;
-                    align-items: center;
-                    justify-content: center;
-                }
-                .stage {
-                    background: rgba(255,255,255,0.08);
+                .input-area { display: flex; gap: 10px; margin-bottom: 25px; }
+                .input-area input {
+                    flex: 1;
+                    padding: 14px 18px;
                     border-radius: 12px;
-                    padding: 15px 20px;
-                    text-align: center;
-                    min-width: 130px;
-                    border: 1px solid rgba(255,255,255,0.15);
-                    transition: transform 0.2s;
-                }
-                .stage:hover { transform: translateY(-5px); }
-                .stage .icon { font-size: 2em; margin-bottom: 8px; }
-                .stage .name { font-size: 0.85em; color: #a0aec0; }
-                .stage .label { font-size: 0.95em; font-weight: bold; }
-                .arrow { font-size: 1.5em; color: #63b3ed; }
-
-                /* TECH STACK */
-                .tech {
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 15px;
-                    padding: 30px;
-                    margin-bottom: 30px;
-                    border: 1px solid rgba(255,255,255,0.1);
-                }
-                .tech h2 { font-size: 1.6em; margin-bottom: 20px; color: #63b3ed; }
-                .tech-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                    gap: 15px;
-                }
-                .tech-card {
+                    border: 1px solid rgba(255,255,255,0.2);
                     background: rgba(255,255,255,0.08);
+                    color: white;
+                    font-size: 1em;
+                    outline: none;
+                    transition: border 0.2s;
+                }
+                .input-area input::placeholder { color: #718096; }
+                .input-area input:focus { border-color: #63b3ed; }
+                .priority-select {
+                    padding: 14px 10px;
+                    background: rgba(255,255,255,0.08);
+                    border: 1px solid rgba(255,255,255,0.2);
                     border-radius: 12px;
-                    padding: 20px;
-                    border-left: 4px solid;
-                    transition: transform 0.2s;
+                    color: white;
+                    font-size: 0.85em;
+                    outline: none;
+                    cursor: pointer;
                 }
-                .tech-card:hover { transform: translateY(-3px); }
-                .tech-card.jenkins { border-color: #f6ad55; }
-                .tech-card.docker  { border-color: #63b3ed; }
-                .tech-card.ansible { border-color: #fc8181; }
-                .tech-card.github  { border-color: #68d391; }
-                .tech-card.flask   { border-color: #b794f4; }
-                .tech-card.aws     { border-color: #fbd38d; }
-                .tech-card .t-icon { font-size: 2em; margin-bottom: 10px; }
-                .tech-card h3      { font-size: 1.1em; margin-bottom: 8px; }
-                .tech-card p       { font-size: 0.85em; color: #a0aec0; line-height: 1.6; }
-
-                /* HOW IT WORKS */
-                .how {
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 15px;
-                    padding: 30px;
-                    margin-bottom: 30px;
-                    border: 1px solid rgba(255,255,255,0.1);
-                }
-                .how h2 { font-size: 1.6em; margin-bottom: 20px; color: #63b3ed; }
-                .steps  { list-style: none; }
-                .steps li {
-                    display: flex;
-                    align-items: flex-start;
-                    gap: 15px;
-                    padding: 15px 0;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                }
-                .steps li:last-child { border-bottom: none; }
-                .step-num {
+                .priority-select option { background: #1a1a2e; }
+                .input-area button {
+                    padding: 14px 22px;
                     background: #63b3ed;
                     color: white;
-                    width: 32px;
-                    height: 32px;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 1.3em;
+                    cursor: pointer;
+                    transition: background 0.2s, transform 0.1s;
+                }
+                .input-area button:hover { background: #4299e1; transform: scale(1.05); }
+                .filters { display: flex; gap: 8px; margin-bottom: 20px; justify-content: center; }
+                .filter-btn {
+                    padding: 7px 18px;
+                    border-radius: 20px;
+                    border: 1px solid rgba(255,255,255,0.2);
+                    background: transparent;
+                    color: #a0aec0;
+                    cursor: pointer;
+                    font-size: 0.85em;
+                    transition: all 0.2s;
+                }
+                .filter-btn.active, .filter-btn:hover {
+                    background: #63b3ed;
+                    color: white;
+                    border-color: #63b3ed;
+                }
+                .stats {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                    padding: 12px 18px;
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 12px;
+                    font-size: 0.85em;
+                    color: #a0aec0;
+                }
+                .stats span { color: white; font-weight: bold; }
+                .todo-list { list-style: none; }
+                .todo-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 14px 16px;
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 12px;
+                    margin-bottom: 10px;
+                    border: 1px solid rgba(255,255,255,0.08);
+                    transition: transform 0.2s;
+                    animation: slideIn 0.3s ease;
+                }
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+                .todo-item:hover { transform: translateX(4px); }
+                .todo-item.completed { opacity: 0.5; }
+                .todo-item.completed .todo-text { text-decoration: line-through; color: #718096; }
+                .todo-check {
+                    width: 24px; height: 24px;
                     border-radius: 50%;
+                    border: 2px solid rgba(255,255,255,0.3);
+                    background: transparent;
+                    cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-weight: bold;
                     flex-shrink: 0;
-                    font-size: 0.9em;
+                    transition: all 0.2s;
+                    font-size: 0.8em;
+                    color: white;
                 }
-                .step-content h4 { margin-bottom: 4px; font-size: 1em; }
-                .step-content p  { color: #a0aec0; font-size: 0.9em; line-height: 1.6; }
-
-                /* FOOTER */
-                .footer {
-                    text-align: center;
-                    padding: 20px;
-                    color: #a0aec0;
-                    font-size: 0.9em;
+                .todo-check:hover  { border-color: #48bb78; }
+                .todo-check.done   { background: #48bb78; border-color: #48bb78; }
+                .todo-text { flex: 1; color: white; font-size: 0.95em; }
+                .todo-priority {
+                    padding: 3px 10px;
+                    border-radius: 10px;
+                    font-size: 0.75em;
+                    font-weight: bold;
                 }
+                .priority-high   { background: rgba(252,129,129,0.2); color: #fc8181; }
+                .priority-medium { background: rgba(246,173,85,0.2);  color: #f6ad55; }
+                .priority-low    { background: rgba(104,211,145,0.2); color: #68d391; }
+                .delete-btn {
+                    background: transparent;
+                    border: none;
+                    color: #fc8181;
+                    cursor: pointer;
+                    font-size: 1.1em;
+                    padding: 4px 8px;
+                    border-radius: 8px;
+                    transition: background 0.2s;
+                    opacity: 0;
+                }
+                .todo-item:hover .delete-btn { opacity: 1; }
+                .delete-btn:hover { background: rgba(252,129,129,0.15); }
+                .empty { text-align: center; padding: 40px; color: #718096; }
+                .empty .empty-icon { font-size: 3em; margin-bottom: 10px; }
+                .clear-btn {
+                    width: 100%;
+                    margin-top: 15px;
+                    padding: 12px;
+                    background: rgba(252,129,129,0.1);
+                    border: 1px solid rgba(252,129,129,0.3);
+                    border-radius: 12px;
+                    color: #fc8181;
+                    cursor: pointer;
+                    font-size: 0.9em;
+                    transition: background 0.2s;
+                }
+                .clear-btn:hover { background: rgba(252,129,129,0.2); }
+                .footer { text-align: center; margin-top: 25px; color: #4a5568; font-size: 0.8em; }
             </style>
         </head>
         <body>
-            <div class="container">
-
-                <!-- HEADER -->
+            <div class="app">
                 <div class="header">
-                    <h1>🚀 Jenkins CI/CD Pipeline</h1>
-                    <p>Automated Build, Test & Deploy using DevOps Tools</p>
-                    <div class="badge">✅ Application Deployed Successfully</div>
+                    <h1>✅ Todo App</h1>
+                    <p>Deployed via Jenkins CI/CD Pipeline</p>
+                    <div class="badge">🚀 Running on AWS EC2</div>
                 </div>
 
-                <!-- ABOUT PROJECT -->
-                <div class="about">
-                    <h2>📖 About This Project</h2>
-                    <p>
-                        This project demonstrates a fully automated <strong>CI/CD pipeline</strong> built using
-                        industry-standard DevOps tools. The pipeline automatically pulls the latest code from
-                        GitHub, builds a Docker image, runs automated tests, pushes the image to Docker Hub,
-                        and deploys the application using Ansible — all triggered by a single click in Jenkins.
-                        The entire application runs on <strong>AWS EC2</strong>, containerized with <strong>Docker</strong>.
-                    </p>
+                <div class="input-area">
+                    <input type="text" id="todoInput" placeholder="Add a new task..." onkeypress="handleKey(event)" />
+                    <select class="priority-select" id="prioritySelect">
+                        <option value="medium">🟡 Med</option>
+                        <option value="high">🔴 High</option>
+                        <option value="low">🟢 Low</option>
+                    </select>
+                    <button onclick="addTodo()">+</button>
                 </div>
 
-                <!-- PIPELINE FLOW -->
-                <div class="pipeline">
-                    <h2>🔄 CI/CD Pipeline Flow</h2>
-                    <div class="stages">
-                        <div class="stage">
-                            <div class="icon">📋</div>
-                            <div class="label">Checkout</div>
-                            <div class="name">Pull from GitHub</div>
-                        </div>
-                        <div class="arrow">→</div>
-                        <div class="stage">
-                            <div class="icon">🔨</div>
-                            <div class="label">Build</div>
-                            <div class="name">Docker Image</div>
-                        </div>
-                        <div class="arrow">→</div>
-                        <div class="stage">
-                            <div class="icon">🧪</div>
-                            <div class="label">Test</div>
-                            <div class="name">PyTest Suite</div>
-                        </div>
-                        <div class="arrow">→</div>
-                        <div class="stage">
-                            <div class="icon">🐳</div>
-                            <div class="label">Push</div>
-                            <div class="name">Docker Hub</div>
-                        </div>
-                        <div class="arrow">→</div>
-                        <div class="stage">
-                            <div class="icon">🚀</div>
-                            <div class="label">Deploy</div>
-                            <div class="name">via Ansible</div>
-                        </div>
-                        <div class="arrow">→</div>
-                        <div class="stage">
-                            <div class="icon">✅</div>
-                            <div class="label">Verify</div>
-                            <div class="name">Health Check</div>
-                        </div>
-                    </div>
+                <div class="filters">
+                    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+                    <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
+                    <button class="filter-btn" onclick="setFilter('completed', this)">Completed</button>
                 </div>
 
-                <!-- TECH STACK -->
-                <div class="tech">
-                    <h2>🛠️ Technology Stack</h2>
-                    <div class="tech-grid">
-                        <div class="tech-card jenkins">
-                            <div class="t-icon">⚙️</div>
-                            <h3>Jenkins</h3>
-                            <p>CI/CD automation server that orchestrates the entire pipeline from code commit to deployment.</p>
-                        </div>
-                        <div class="tech-card docker">
-                            <div class="t-icon">🐳</div>
-                            <h3>Docker</h3>
-                            <p>Containerizes the Flask application ensuring consistent runs across all environments.</p>
-                        </div>
-                        <div class="tech-card ansible">
-                            <div class="t-icon">📦</div>
-                            <h3>Ansible</h3>
-                            <p>Automates deployment by pulling the Docker image and running the container on the server.</p>
-                        </div>
-                        <div class="tech-card github">
-                            <div class="t-icon">🐙</div>
-                            <h3>GitHub</h3>
-                            <p>Source code repository. Every push to main branch triggers the Jenkins pipeline.</p>
-                        </div>
-                        <div class="tech-card flask">
-                            <div class="t-icon">🐍</div>
-                            <h3>Python Flask</h3>
-                            <p>Lightweight web framework powering this application with PyTest for automated testing.</p>
-                        </div>
-                        <div class="tech-card aws">
-                            <div class="t-icon">☁️</div>
-                            <h3>AWS EC2</h3>
-                            <p>Cloud infrastructure hosting both the Jenkins server and the deployed application.</p>
-                        </div>
-                    </div>
+                <div class="stats">
+                    <div>Total: <span id="totalCount">0</span></div>
+                    <div>Active: <span id="activeCount">0</span></div>
+                    <div>Done: <span id="doneCount">0</span></div>
                 </div>
 
-                <!-- HOW IT WORKS -->
-                <div class="how">
-                    <h2>⚙️ How It Works</h2>
-                    <ul class="steps">
-                        <li>
-                            <div class="step-num">1</div>
-                            <div class="step-content">
-                                <h4>📋 Code Checkout</h4>
-                                <p>Jenkins pulls the latest code from the GitHub repository (main branch) using Git credentials.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="step-num">2</div>
-                            <div class="step-content">
-                                <h4>🔨 Docker Image Build</h4>
-                                <p>Jenkins builds a Docker image from the Dockerfile, tagging it with the build number for versioning.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="step-num">3</div>
-                            <div class="step-content">
-                                <h4>🧪 Automated Testing</h4>
-                                <p>PyTest runs inside the Docker container to validate the application. Pipeline stops if any test fails.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="step-num">4</div>
-                            <div class="step-content">
-                                <h4>🐳 Push to Docker Hub</h4>
-                                <p>The verified image is pushed to Docker Hub registry with both a versioned tag and latest tag.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="step-num">5</div>
-                            <div class="step-content">
-                                <h4>🚀 Deploy with Ansible</h4>
-                                <p>Ansible playbook pulls the new image, stops the old container, and starts the updated one automatically.</p>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="step-num">6</div>
-                            <div class="step-content">
-                                <h4>✅ Verify Deployment</h4>
-                                <p>Pipeline checks that the container is running and shows recent logs to confirm successful deployment.</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+                <ul class="todo-list" id="todoList"></ul>
 
-                <!-- FOOTER -->
+                <button class="clear-btn" onclick="clearCompleted()">🗑️ Clear Completed</button>
+
                 <div class="footer">
-                    <p>🚀 Built with Jenkins • Docker • Ansible • AWS EC2 • Python Flask</p>
-                    <p style="margin-top: 8px;">Pipeline runs automatically on every GitHub push to main branch</p>
+                    Built with Flask • Docker • Jenkins • Ansible • AWS EC2
                 </div>
-
             </div>
+
+            <script>
+                let todos  = [];
+                let filter = 'all';
+
+                async function loadTodos() {
+                    const res = await fetch('/todos');
+                    todos = await res.json();
+                    render();
+                }
+
+                async function addTodo() {
+                    const input    = document.getElementById('todoInput');
+                    const priority = document.getElementById('prioritySelect').value;
+                    const text     = input.value.trim();
+                    if (!text) return;
+                    const res  = await fetch('/todos', {
+                        method:  'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body:    JSON.stringify({ text, priority })
+                    });
+                    const todo = await res.json();
+                    todos.push(todo);
+                    input.value = '';
+                    render();
+                }
+
+                async function toggleTodo(id) {
+                    const res     = await fetch(`/todos/${id}`, { method: 'PUT' });
+                    const updated = await res.json();
+                    todos = todos.map(t => t.id === id ? updated : t);
+                    render();
+                }
+
+                async function deleteTodo(id) {
+                    await fetch(`/todos/${id}`, { method: 'DELETE' });
+                    todos = todos.filter(t => t.id !== id);
+                    render();
+                }
+
+                async function clearCompleted() {
+                    await fetch('/todos/completed', { method: 'DELETE' });
+                    todos = todos.filter(t => !t.completed);
+                    render();
+                }
+
+                function setFilter(f, btn) {
+                    filter = f;
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    render();
+                }
+
+                function handleKey(e) { if (e.key === 'Enter') addTodo(); }
+
+                function render() {
+                    const list     = document.getElementById('todoList');
+                    const filtered = todos.filter(t => {
+                        if (filter === 'active')    return !t.completed;
+                        if (filter === 'completed') return  t.completed;
+                        return true;
+                    });
+
+                    document.getElementById('totalCount').textContent  = todos.length;
+                    document.getElementById('activeCount').textContent = todos.filter(t => !t.completed).length;
+                    document.getElementById('doneCount').textContent   = todos.filter(t =>  t.completed).length;
+
+                    if (filtered.length === 0) {
+                        list.innerHTML = `
+                            <div class="empty">
+                                <div class="empty-icon">📝</div>
+                                <p>No tasks here!</p>
+                            </div>`;
+                        return;
+                    }
+
+                    list.innerHTML = filtered.map(t => `
+                        <li class="todo-item ${t.completed ? 'completed' : ''}">
+                            <div class="todo-check ${t.completed ? 'done' : ''}" onclick="toggleTodo(${t.id})">
+                                ${t.completed ? '✓' : ''}
+                            </div>
+                            <span class="todo-text">${t.text}</span>
+                            <span class="todo-priority priority-${t.priority}">
+                                ${t.priority === 'high' ? '🔴 High' : t.priority === 'low' ? '🟢 Low' : '🟡 Med'}
+                            </span>
+                            <button class="delete-btn" onclick="deleteTodo(${t.id})">✕</button>
+                        </li>
+                    `).join('');
+                }
+
+                loadTodos();
+            </script>
         </body>
     </html>
     '''
+
+@app.route('/todos', methods=['GET'])
+def get_todos():
+    return jsonify(load_todos())
+
+@app.route('/todos', methods=['POST'])
+def add_todo():
+    todos = load_todos()
+    data  = request.get_json()
+    todo  = {
+        'id':        len(todos) + 1,
+        'text':      data.get('text', ''),
+        'completed': False,
+        'priority':  data.get('priority', 'medium')
+    }
+    todos.append(todo)
+    save_todos(todos)
+    return jsonify(todo)
+
+@app.route('/todos/<int:todo_id>', methods=['PUT'])
+def toggle_todo(todo_id):
+    todos = load_todos()
+    for todo in todos:
+        if todo['id'] == todo_id:
+            todo['completed'] = not todo['completed']
+            save_todos(todos)
+            return jsonify(todo)
+    return jsonify({'error': 'Not found'}), 404
+
+@app.route('/todos/<int:todo_id>', methods=['DELETE'])
+def delete_todo(todo_id):
+    todos = load_todos()
+    todos = [t for t in todos if t['id'] != todo_id]
+    save_todos(todos)
+    return jsonify({'success': True})
+
+@app.route('/todos/completed', methods=['DELETE'])
+def clear_completed():
+    todos = load_todos()
+    todos = [t for t in todos if not t['completed']]
+    save_todos(todos)
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
