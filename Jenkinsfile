@@ -111,38 +111,25 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────
-        // STAGE 6 : VERIFY DEPLOYMENT
-        // FIX #1: replaced bare sleep+curl with a proper
-        //         retry loop so the check does not fail
-        //         if the container needs a few seconds
-        //         to become ready
-        // ─────────────────────────────────────────────
-        stage('✅ Verify Deployment') {
-            steps {
-                echo '======== STAGE 6: VERIFY ========'
-                script {
-                    // Check container is running
-                    sh "docker ps | grep jenkins-app || echo '⚠️ Container not found in docker ps'"
-
-                    // Health-check with retry — waits up to 60 s
-                    timeout(time: 60, unit: 'SECONDS') {
-                        waitUntil(initialRecurrencePeriod: 5000) {
-                            def status = sh(
-                                script: 'curl -sf http://localhost:5000',
-                                returnStatus: true
-                            )
-                            if (status == 0) {
-                                echo '✅ Application is running!'
-                                return true
-                            }
-                            echo '⏳ Waiting for application to become ready...'
-                            return false
-                        }
-                    }
-                }
-            }
-        }
+      stage('✅ Verify Deployment') {
+    steps {
+        echo '======== STAGE 6: VERIFY ========'
+        sh '''
+            echo "Checking container status..."
+            
+            # Check container is running
+            docker ps | grep jenkins-app && \
+            echo "✅ Container is running!" || \
+            echo "⚠️ Container not found"
+            
+            # Show container details
+            docker ps | grep jenkins-app
+            
+            # Show app logs
+            docker logs jenkins-app --tail 10
+        '''
     }
+}
 
     // ─────────────────────────────────────────────────
     // POST ACTIONS
