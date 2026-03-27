@@ -45,19 +45,19 @@ pipeline {
             }
         }
 
-        // ─────────────────────────────────────────────
-        // STAGE 3 : RUN TESTS
-        // ─────────────────────────────────────────────
+        
         stage('🧪 Run Tests') {
-            steps {
-                echo '======== STAGE 3: TEST ========'
-                sh '''
-                    echo "Running unit tests inside Docker container..."
-                    docker run --rm ${IMAGE_NAME}:${IMAGE_TAG} python -m pytest tests/test_app.py -v
-                    echo "✅ All tests passed!"
-                '''
-            }
-        }
+    steps {
+        echo '======== STAGE 3: TEST ========'
+        sh '''
+            echo "Running unit tests inside Docker container..."
+            docker run --rm \
+              -e TEST_MODE=true \
+              ${IMAGE_NAME}:${IMAGE_TAG} \
+              python -m pytest tests/test_app.py -v
+        '''
+    }
+}
 
         // ─────────────────────────────────────────────
         // STAGE 4 : PUSH TO DOCKER REGISTRY
