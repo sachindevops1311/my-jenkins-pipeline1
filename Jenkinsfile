@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB   = credentials('11708ce4-4145-4399-9573-3599390c1484')
+        DOCKER_HUB   = credentials('ee0498e9-6036-4ca7-a6dd-43755111651d')
         IMAGE_NAME   = 'sachin1311/jenkins-app'
         IMAGE_TAG    = "${BUILD_NUMBER ?: 'latest'}"
         REGISTRY     = 'docker.io'
@@ -21,7 +21,7 @@ pipeline {
                     branches: [[name: '*/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/sachindevops1311/my-jenkins-pipeline1.git',
-                        credentialsId: 'b460e8df-ada5-4733-bf6f-38d8db64dd26'
+                        credentialsId: 'b37e9561-6853-4f13-863f-9c8885fda86d'
                     ]]
                 ])
                 sh 'echo "✅ Code checked out successfully"'
