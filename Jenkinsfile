@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_HUB = credentials('b37e9561-6853-4f13-863f-9c8885fda86d')
-        IMAGE_NAME = 'sachindevops1311/jenkins-app'
+        IMAGE_NAME = 'sachin1311/jenkins-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
