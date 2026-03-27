@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB = credentials('dockerhub-credentials')
+        DOCKER_HUB = credentials('ee0498e9-6036-4ca7-a6dd-43755111651d')
         IMAGE_NAME = 'sachindevops1311/jenkins-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
@@ -11,7 +11,13 @@ pipeline {
         stage('📋 Checkout Code') {
             steps {
                 echo '======== STAGE 1: CHECKOUT ========'
-                checkout scm
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/sachindevops1311/my-jenkins-pipeline1.git'
+                    ]]
+                ])
                 sh 'echo "✅ Code checked out successfully"'
             }
         }
@@ -20,21 +26,21 @@ pipeline {
             steps {
                 echo '======== STAGE 2: BUILD ========'
                 sh '''
-                    echo "Building: ${IMAGE_NAME}:${IMAGE_TAG}"
+                    echo "Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
                     docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                     docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-                    echo "✅ Build successful!"
+                    echo "✅ Docker image built successfully"
                 '''
             }
         }
 
-        stage('🧪 Test') {
+        stage('🧪 Run Tests') {
             steps {
                 echo '======== STAGE 3: TEST ========'
                 sh '''
                     echo "Running tests..."
                     sleep 2
-                    echo "✅ Tests passed!"
+                    echo "✅ All tests passed!"
                 '''
             }
         }
@@ -46,11 +52,11 @@ pipeline {
                     echo "Logging into Docker Hub..."
                     echo "${DOCKER_HUB_PSW}" | docker login -u "${DOCKER_HUB_USR}" --password-stdin
                     
-                    echo "Pushing image..."
+                    echo "Pushing image to registry..."
                     docker push ${IMAGE_NAME}:${IMAGE_TAG}
                     docker push ${IMAGE_NAME}:latest
                     
-                    echo "✅ Push successful!"
+                    echo "✅ Image pushed successfully"
                     docker logout
                 '''
             }
@@ -71,7 +77,7 @@ pipeline {
                       ${IMAGE_NAME}:${IMAGE_TAG}
                     
                     sleep 3
-                    echo "✅ Deployment successful!"
+                    echo "✅ Deployment completed!"
                 '''
             }
         }
@@ -93,14 +99,14 @@ pipeline {
 
     post {
         success {
-            echo '🎉 Pipeline completed successfully!'
-            echo "Image deployed: ${IMAGE_NAME}:${IMAGE_TAG}"
+            echo '🎉 Pipeline executed successfully!'
+            echo "Image: ${IMAGE_NAME}:${IMAGE_TAG}"
         }
         failure {
             echo '❌ Pipeline failed!'
         }
         always {
-            echo '📊 Build finished'
+            echo '📊 Pipeline completed'
         }
     }
 }
