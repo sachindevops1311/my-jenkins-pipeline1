@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB = credentials('b37e9561-6853-4f13-863f-9c8885fda86d')
+        DOCKER_HUB = credentials('a2831b72-8c03-43d0-b1aa-2d60a87f2785')
         IMAGE_NAME = 'sachin1311/jenkins-app'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
@@ -11,13 +11,7 @@ pipeline {
         stage('📋 Checkout Code') {
             steps {
                 echo '======== STAGE 1: CHECKOUT ========'
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/sachindevops1311/my-jenkins-pipeline1.git'
-                    ]]
-                ])
+                checkout scm
                 sh 'echo "✅ Code checked out successfully"'
             }
         }
