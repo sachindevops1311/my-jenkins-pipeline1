@@ -181,12 +181,12 @@ Manage Jenkins
 Kind     : Username with password
 Username : sachin1311
 Password : your-dockerhub-token
-ID       : 11708ce4-4145-4399-9573-3599390c1484
+ID       : 
 # GitHub
 Kind     : Username with password
 Username : sachindevops1311
 Password : your-github-token
-ID       : b460e8df-ada5-4733-bf6f-38d8db64dd26
+ID       : 
 
 Step 10 — Create Pipeline Job
 Jenkins
